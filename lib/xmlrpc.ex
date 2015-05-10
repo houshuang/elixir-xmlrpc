@@ -19,11 +19,16 @@ defmodule Xmlrpc do
   end
 
   def parse_success(body) do
-    case elem(body |> xpath(~x"//params/param/value/*"), 1) do
-      :i4 -> List.to_integer(body |> xpath(~x"//params/param/value/i4/text()"))
-      nil -> List.to_string(body |> xpath(~x"//params/param/value/text()"))
-      :string -> List.to_string(body |> xpath(~x"//params/param/value/string/text()"))
+    xp = (body |> xpath(~x"//params/param/value/*"))
+    if xp do
+      case elem(xp, 1) do
+        :i4 -> List.to_integer(body |> xpath(~x"//params/param/value/i4/text()"))
+        :string -> List.to_string(body |> xpath(~x"//params/param/value/string/text()"))
+      end
+    else
+      List.to_string(body |> xpath(~x"//params/param/value/text()"))
     end
+
   end
 
   def xmlrequest(method, params) do
