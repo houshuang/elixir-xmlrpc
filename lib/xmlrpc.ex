@@ -4,18 +4,27 @@ defmodule Xmlrpc do
 
   def call(url, method, params) do
     case HTTPoison.post url, xmlrequest(method, params) do
-      {:error, error} -> {:error, :http, error}
+      {:error, error} -> {:error, :network_request, error}
       {:ok, %HTTPoison.Response{body: body}} -> parse_response(body)
     end
   end
   
   def parse_response(body) do
+    IO.inspect(body)
     if xpath(body, ~x"//methodResponse/fault") do
-      {:error, :remote_fault, xpath(body, ~x"//value/text()")}
+      {:error, :remote_fault, List.to_string(xpath(body, ~x"//string/text()"))}
     else
-      {:ok, xpath(body, ~x"//value/text()")}
+      {:ok, parse_success(body)}
     end
-end
+  end
+
+  def parse_success(body) do
+    case elem(body |> xpath(~x"//params/param/value/*"), 1) do
+      :i4 -> List.to_integer(body |> xpath(~x"//params/param/value/i4/text()"))
+      nil -> List.to_string(body |> xpath(~x"//params/param/value/text()"))
+      :string -> List.to_string(body |> xpath(~x"//params/param/value/string/text()"))
+    end
+  end
 
   def xmlrequest(method, params) do
     ["<?xml version=\"1.0\"?><methodCall><methodName>", method, "</methodName><params>", 
