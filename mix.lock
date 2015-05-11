@@ -1,5 +1,9 @@
-%{"hackney": {:hex, :hackney, "1.1.0"},
+%{"amrita": {:git, "git://github.com/houshuang/amrita.git", "bf3f887a71d135dddc92352e549fcfd30d05cd22", [branch: "current"]},
+  "erlsom": {:git, "git://github.com/willemdj/erlsom.git", "5dba7819ef99ba84eeb43c946dbe7f16792e6086", []},
+  "hackney": {:hex, :hackney, "1.1.0"},
   "httpoison": {:hex, :httpoison, "0.6.2"},
   "idna": {:hex, :idna, "1.0.2"},
+  "meck": {:git, "git://github.com/eproxus/meck.git", "69664df5d0e01a0ae27efb62831d6eea45cc1cd4", [branch: "master"]},
+  "multidef": {:git, "git://github.com/pragdave/mdef.git", "a3099d732338f1282526297373535fbf9ef37ee5", []},
   "ssl_verify_hostname": {:hex, :ssl_verify_hostname, "1.0.4"},
   "sweet_xml": {:hex, :sweet_xml, "0.2.1"}}

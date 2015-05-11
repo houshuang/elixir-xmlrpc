@@ -76,7 +76,7 @@ decode_element(#xmlElement{name = methodResponse} = MethodResponse)
 	    end;
 	{Params, _} ->
 	    case decode_params(Params#xmlElement.content) of
-		[DecodedParam] -> {ok, {response, [DecodedParam]}};
+		[DecodedParam] -> {ok, DecodedParam}};
 		DecodedParams -> {error, {to_many_params, DecodedParams}}
 	    end
     end;

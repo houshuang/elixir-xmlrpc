@@ -29,6 +29,9 @@ defmodule Xmlrpc.Mixfile do
   defp deps do
     [
       {:httpoison, "~> 0.6"},
-      {:sweet_xml, "~> 0.2.1"}]
+      {:sweet_xml, "~> 0.2.1"},
+      {:erlsom, github: "willemdj/erlsom"},
+      {:multidef, github: "pragdave/mdef"},
+      {:amrita, github: "houshuang/amrita", branch: "current"}]
   end
 end

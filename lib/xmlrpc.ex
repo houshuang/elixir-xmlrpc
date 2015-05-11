@@ -5,7 +5,8 @@ defmodule Xmlrpc do
   def call(url, method, params) do
     case HTTPoison.post url, xmlrequest(method, params) do
       {:error, error} -> {:error, :network_request, error}
-      {:ok, %HTTPoison.Response{body: body}} -> parse_response(body)
+      # {:ok, %HTTPoison.Response{body: body}} -> parse_response(body)
+      {:ok, %HTTPoison.Response{body: body}} -> :xmlrpc_decode.payload(String.to_char_list(body))
     end
   end
   
