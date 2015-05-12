@@ -1,71 +1,73 @@
 defmodule Sax do
   import MultiDef
 
+  @debug false
+
+  # TODO: currently works well with individual values and structs, however cannot handle nested
+  # structs, or lists etc. Currently we use a stack, and know to either remove the whole stack 
+  # (one value) on /param, or the two last values on /struct. However, lists do not have a bounded
+  # length, and anyway doesn't work for nested structs. 
+  # Currently the nested fsm works well, probably needs to be coupled with a nested wait -
+  # so that struct can just pop the last layer off, without worrying about other values, etc.
+
   def parse(str) do
     case :erlsom.parse_sax(str, [], &(respond_tr/2), []) do
-      {:ok, [x], []} -> {:ok, x}
-      {:ok, list, []} -> {:ok, Enum.reverse(list)}
+      {:ok, {[x], _, _}, _} -> {:ok, x}
+      {:ok, {x, _, _}, _}   -> {:ok, Enum.reverse(x)}
     end
   end
 
   def respond_tr(:startDocument, _) do 
-    IO.puts("\n\n#{String.duplicate("#", 50)}\n")
-    {:wait, []}
+    if @debug, do: IO.puts("\n\n#{String.duplicate("#", 50)}\n")
+    {[], [], []}
   end
 
   def respond_tr(args, state) do
-    IO.inspect([args, state])
+    if @debug, do: IO.inspect([args, state])
     respond(args, state)
   end
 
-  # TODO: right now handles structs as individual params OK, but cannot merge structs with multiple members, 
-  # see how the state transition happens, maybe explicitly leave struct, or use merge...
-  # also need to add lists - hopefully can be done without copying all struct members again
-
-  mdef respond do 
-    :startDocument,_                          -> {:wait, []}
-    {:startElement, [], elem, [], []}, state  -> startElem(elem, state)
-    :endDocument, {_, result}                 -> result
-    
-    {:characters, str}, {:value, acc}         -> {:wait, [List.to_string(str) | acc] }
-    {:characters, str}, {:string, acc}        -> {:wait, [List.to_string(str) | acc] }
-    {:characters, str}, {:int, acc}           -> {:wait, [List.to_integer(str) | acc] }
-    {:characters, str}, {:float, acc}         -> {:wait, [List.to_float(str) | acc] }
-    {:characters, str}, {:boolean, acc}       -> {:wait, [to_boolean(str) | acc] }
-    {:characters, str}, {:name, acc}          -> {:struct_val, List.to_string(str), acc }
-
-    # for struct values
-    {:characters, str}, {:value, name, acc}   -> {:wait, [Map.put(%{}, name, List.to_string(str)) | acc] }
-    {:characters, str}, {:string, name, acc}  -> {:wait, [Map.put(%{}, name, List.to_string(str)) | acc] }
-    {:characters, str}, {:int, name, acc}     -> {:wait, [Map.put(%{}, name, List.to_integer(str)) | acc] }
-    {:characters, str}, {:float, name, acc}   -> {:wait, [Map.put(%{}, name, List.to_float(str)) | acc] }
-    {:characters, str}, {:boolean, name, acc} -> {:wait, [Map.put(%{}, name, to_boolean(str)) | acc] }
-
-    x, state                                  -> state
+  def trace(trace, return) do
+    IO.inspect([trace, return])
+    return
   end
 
-  mdef startElem do
-    'param',  {:wait, acc}             -> {:param, acc}
-    'struct', {_, acc}                 -> {:struct, acc}
-    'member', {:struct, acc}           -> {:member, acc}
-    'name', {:member, acc}             -> {:name, acc}
+  mdef respond do 
+    :startDocument,_                                   -> {:wait, []}
+    {:startElement, [], elem, [], []}, state           -> startElem(elem, state)
+    {:endElement, [], elem, []}, state                 -> endElem(elem, state)
+    :endDocument, {_, result}                          -> result
+    
+    {:characters, str}, {acc, wait, [hd | tl] = state} -> {acc, [value(hd, str) | wait], state}
+    _, state                                           -> state
+  end
 
-    'value',  {:param, acc}            -> {:value, acc}
-    'value',  {:struct_val, acc}       -> {:value, acc}
-    'string', {:value, acc}            -> {:string, acc}
-    'int',    {:value, acc}            -> {:int, acc}
-    'i4',    {:value, acc}             -> {:int, acc}
-    'boolean',    {:value, acc}        -> {:boolean, acc}
-    'float',    {:value, acc}          -> {:float, acc}
+  def startElem(elem, {acc, wait, state}), do: {acc, wait, [elem|state]}
 
-    'value',  {:param, name, acc}      -> {:value, name, acc}
-    'value',  {:struct_val, name, acc} -> {:value, name, acc}
-    'string', {:value, name, acc}      -> {:string, name, acc}
-    'int',    {:value, name, acc}      -> {:int, name, acc}
-    'i4',    {:value, name, acc}       -> {:int, name, acc}
-    'boolean',    {:value, name, acc}  -> {:boolean, name, acc}
-    'float',    {:value, name, acc}    -> {:float, name, acc}
-    _, state                           -> state
+  def endElem(elem, {acc, wait, [elem | tl]}) do
+    {acc, wait} = proc_end(elem, acc, wait)
+    {acc, wait, tl}
+  end
+
+  mdef proc_end do
+    'member', acc, [v, k | wait] -> {acc, [ Map.put(%{}, k, v) | wait ]}
+    'struct', acc, wait          -> { [ map_merge(wait) | acc ],  [] }
+    'param', acc, []          -> { acc,  [] }
+    'param', acc, [wait]          -> { [ wait | acc ],  [] }
+    _, acc, wait                 -> {acc, wait}
+  end
+
+
+  def map_merge(x), do: Enum.reduce(x, fn(x, acc) -> Map.merge(acc, x) end)
+
+  mdef value do 
+    'value', str         -> List.to_string(str)
+    'string', str        -> List.to_string(str)
+    'int', str           -> List.to_integer(str)
+    'i4', str           -> List.to_integer(str)
+    'float', str         -> List.to_float(str)
+    'boolean', str       -> to_boolean(str)
+    'name', str          -> List.to_string(str)
   end
 
   mdef to_boolean do

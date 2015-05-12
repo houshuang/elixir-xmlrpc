@@ -8,27 +8,32 @@ defmodule XmlrpcTest do
     Sax.parse(str)
   end
 
-  # facts "individual values" do
-  #   fact "string", do: req("<param><value><string>hi</string></value></param>") |> {:ok, "hi"}
-  #   fact "string wrong", do: req("<param><value><string>ho</string></value></param>") |> ! {:ok, "hi"}
-  #   fact "int", do: req("<param><value><int>4</int></value></param>") |> {:ok, 4}
-  #   fact "float", do: req("<param><value><float>4.0</float></value></param>") |> {:ok, 4.0}
-  #   fact "boolean true", do: req("<param><value><boolean>1</boolean></value></param>") |> {:ok, true}
-  #   fact "boolean false", do: req("<param><value><boolean>0</boolean></value></param>") |> {:ok, false}
-  #   fact "naked value", do: req("<param><value>hi</value></param>") |> {:ok, "hi"}
-  # end
+  facts "individual values" do
+    fact "string",        do: req("<param><value><string>hi</string></value></param>")  |> {:ok, "hi"}
+    fact "string wrong",  do: req("<param><value><string>ho</string></value></param>")  |> ! {:ok, "hi"}
+    fact "int",           do: req("<param><value><int>4</int></value></param>")         |> {:ok, 4}
+    fact "float",         do: req("<param><value><float>4.0</float></value></param>")   |> {:ok, 4.0}
+    fact "boolean true",  do: req("<param><value><boolean>1</boolean></value></param>") |> {:ok, true}
+    fact "boolean false", do: req("<param><value><boolean>0</boolean></value></param>") |> {:ok, false}
+    fact "naked value",   do: req("<param><value>hi</value></param>")                   |> {:ok, "hi"}
+  end
 
-  # facts "several values" do
-  #   fact "string and int", do: req("<param><value><string>hi</string></value></param><param><value><int>2</int></value></param>") |> {:ok, ["hi", 2]}
-  #   fact "three ints", do: req("<param><value><int>2</int></value></param><param><value><int>3</int></value></param><param><value><int>4</int></value></param>") |> {:ok, [2, 3, 4]}
-  # end
+fact "nested struct", do: req("<param><value><struct><member><name>lowerBound</name><value><struct><member><name>lowerBound</name><value><i4>18</i4></value></member><member><name>upperBound</name><value><i4>139</i4></value></member></struct></value></member><member><name>upperBound</name><value><i4>139</i4></value></member></struct></value></param>") |> []
 
-  facts "structs" do
+  facts "several values" do
+    fact "string and int", do: req("<param><value><string>hi</string></value></param><param><value><int>2</int></value></param>") |> {:ok, ["hi", 2]}
+    fact "three ints", do: req("<param><value><int>2</int></value></param><param><value><int>3</int></value></param><param><value><int>4</int></value></param>") |> {:ok, [2, 3, 4]}
+  end
+
+
+  facts "structs work" do
     fact "simple struct", do: req("<param><struct><member><name>task</name><value><string>clean</string></value></member></struct></param>") |> {:ok, %{"task" => "clean"}}
 
     fact "two structs", do: req("<param><struct><member><name>task</name><value><string>clean</string></value></member></struct></param><param><struct><member><name>age</name><value><int>21</int></value></member></struct></param>") |> {:ok, [%{"task" => "clean"}, %{"age" => 21}]}
 
-    fact "struct with two members", do: req("<param><struct><member><name>task</name><value><string>clean</string></value></member><member><name>age</name><value><int>21</int></value></member></struct></param>") |> {:ok, [%{"task" => "clean", "age" => 21}]}
+    fact "struct with two members", do: req("<param><struct><member><name>task</name><value><string>clean</string></value></member><member><name>age</name><value><int>21</int></value></member></struct></param>") |> {:ok, %{"task" => "clean", "age" => 21}}
+
+    fact "struct and simple value", do: req("<param><struct><member><name>temperature</name><value><float>4.0</float></value></member></struct></param><param><string>hello</string></param>") |> {:ok, [%{"temperature" => 4.0}, "hello"]}
   end
 end
 
